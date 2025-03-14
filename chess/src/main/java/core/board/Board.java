@@ -1,6 +1,8 @@
 package core.board;
 
 import core.bitboard.Bitboard;
+import core.fen.FenGenerator;
+import core.util.MoveNotation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -96,6 +98,8 @@ public class Board {
         halfmoveClock = 0;
         fullmoveNumber = 1;
 
+        clearPositionHistory();
+
         updatePositionHistory();
     }
 
@@ -130,6 +134,19 @@ public class Board {
     }
 
     // Getters and setters
+
+    public int getHalfmoveClock() {
+        return halfmoveClock;
+    }
+
+    /**
+     * Get the current fullmove number
+     *
+     * @return The number of completed full moves in the game
+     */
+    public int getFullmoveNumber() {
+        return fullmoveNumber;
+    }
 
     public long getWhitePawns() {
         return whitePawns;
@@ -193,6 +210,80 @@ public class Board {
 
     public boolean isWhiteToMove() {
         return whiteToMove;
+    }
+
+    public List<String> getGameHistoryAsFEN() {
+        List<String> fenHistory = new ArrayList<>();
+
+        // Create a temporary board to replay the moves
+        Board tempBoard = new Board();
+        tempBoard.setInitialPosition();
+
+        // Add initial position
+        fenHistory.add(FenGenerator.generateFen(tempBoard));
+
+        // Get a copy of the moves to replay (without modifying the original history)
+        Stack<Move> moves = getMoveSequence();
+
+        // Replay each move on the temp board and record FEN after each
+        for (Move move : moves) {
+            tempBoard.makeMove(move);
+            fenHistory.add(FenGenerator.generateFen(tempBoard));
+        }
+
+        return fenHistory;
+    }
+
+    /**
+     * Returns a list of moves in algebraic notation representing the game history
+     * @return List of moves in algebraic notation
+     */
+    public List<String> getGameHistoryAsPGN() {
+        List<String> pgnMoves = new ArrayList<>();
+
+        // Create a temporary board to replay the moves
+        Board tempBoard = new Board();
+        tempBoard.setInitialPosition();
+
+        // Get a copy of the moves to replay
+        Stack<Move> moves = getMoveSequence();
+
+        // Convert each move to algebraic notation
+        int moveNumber = 1;
+        boolean isWhiteMove = true;
+
+        for (Move move : moves) {
+            String algebraicMove = MoveNotation.toAlgebraic(move);
+
+            if (isWhiteMove) {
+                pgnMoves.add(moveNumber + ". " + algebraicMove);
+            } else {
+                pgnMoves.add(algebraicMove);
+                moveNumber++;
+            }
+
+            // Make the move on the temp board
+            tempBoard.makeMove(move);
+            isWhiteMove = !isWhiteMove;
+        }
+
+        return pgnMoves;
+    }
+
+    /**
+     * Get the sequence of moves made in this game
+     * @return Stack of moves in the order they were made
+     */
+    private Stack<Move> getMoveSequence() {
+        Stack<Move> moves = new Stack<>();
+
+        // This implementation depends on how you store moves in your BoardState
+        // Here's a simple example assuming BoardState has a move field
+        for (BoardState state : moveHistory) {
+            moves.add(state.move);
+        }
+
+        return moves;
     }
 
     /**

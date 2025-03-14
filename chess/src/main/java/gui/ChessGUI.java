@@ -4,7 +4,6 @@ import core.board.Board;
 import core.board.Move;
 import core.engine.ChessEngine;
 import core.engine.SearchResult;
-import core.fen.FenParser;
 import core.util.MoveNotation;
 import core.util.Square;
 import core.board.MoveList;
@@ -20,6 +19,17 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.File;
+import java.io.FileWriter;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.util.List;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import core.fen.FenParser;
+import core.fen.FenGenerator;
+import core.fen.FenConstants;
 
 public class ChessGUI extends JFrame {
     private final Board board;
@@ -28,6 +38,7 @@ public class ChessGUI extends JFrame {
     private Square selectedSquare = null;
     private JTextArea moveHistoryArea;
     private JLabel gameStatusLabel;
+    private JTextField fenInputField;
 
     // Standard starting position in FEN notation
     private static final String STARTING_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -54,6 +65,9 @@ public class ChessGUI extends JFrame {
         gameStatusLabel.setHorizontalAlignment(JLabel.CENTER);
         gameStatusLabel.setFont(new Font("Arial", Font.BOLD, 14));
         add(gameStatusLabel, BorderLayout.NORTH);
+        JPanel fenPanel = new JPanel(new BorderLayout());
+        JButton applyFenBtn = new JButton("Apply FEN");
+        fenInputField = new JTextField(FenConstants.STARTING_POSITION);
 
         // Add a control panel
         JPanel controlPanel = new JPanel(new BorderLayout());
@@ -63,20 +77,32 @@ public class ChessGUI extends JFrame {
         JButton newGameBtn = new JButton("New Game");
         JButton engineMoveBtn = new JButton("Engine Move");
         JButton undoBtn = new JButton("Undo");
+        JButton exportGameBtn = new JButton("Export Game");
 
         newGameBtn.addActionListener(e -> resetBoard());
         engineMoveBtn.addActionListener(e -> makeEngineMove());
         undoBtn.addActionListener(e -> undoMove());
+        exportGameBtn.addActionListener(e -> exportGameHistory());
 
+        fenPanel.add(new JLabel("FEN Position: "), BorderLayout.WEST);
+        fenPanel.add(fenInputField, BorderLayout.CENTER);
+        fenPanel.add(applyFenBtn, BorderLayout.EAST);
         buttonPanel.add(newGameBtn);
         buttonPanel.add(engineMoveBtn);
         buttonPanel.add(undoBtn);
+        buttonPanel.add(exportGameBtn);
         controlPanel.add(buttonPanel, BorderLayout.NORTH);
+        applyFenBtn.addActionListener(e -> applyFenPosition());
+        JButton copyFenBtn = new JButton("Copy Current FEN");
+        buttonPanel.add(copyFenBtn);
+        copyFenBtn.addActionListener(e -> copyCurrentFen());
+
 
         // Move history area
         moveHistoryArea = new JTextArea(5, 20);
         moveHistoryArea.setEditable(false);
         JScrollPane scrollPane = new JScrollPane(moveHistoryArea);
+        controlPanel.add(fenPanel, BorderLayout.SOUTH);
         controlPanel.add(scrollPane, BorderLayout.CENTER);
 
         add(controlPanel, BorderLayout.SOUTH);
@@ -91,6 +117,179 @@ public class ChessGUI extends JFrame {
         setSize(600, 750);
         setLocationRelativeTo(null);
         setVisible(true);
+    }
+
+    private void exportGameHistory() {
+        // Create a file chooser dialog
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Game History");
+
+        // Add options for PGN and FEN history
+        String[] options = {"PGN (moves only)", "FEN Sequence (all positions)"};
+        int choice = JOptionPane.showOptionDialog(this,
+                "Choose export format:",
+                "Export Game History",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]);
+
+        if (choice == 0) {
+            // PGN export
+            fileChooser.setFileFilter(new FileNameExtensionFilter("PGN files (*.pgn)", "pgn"));
+            fileChooser.setSelectedFile(new File("game.pgn"));
+        } else if (choice == 1) {
+            // FEN sequence export
+            fileChooser.setFileFilter(new FileNameExtensionFilter("FEN files (*.fen)", "fen"));
+            fileChooser.setSelectedFile(new File("game.fen"));
+        } else {
+            // User cancelled the format selection
+            return;
+        }
+
+        int result = fileChooser.showSaveDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+
+            try {
+                if (choice == 0) {
+                    // Export PGN
+                    exportPGN(selectedFile);
+                } else {
+                    // Export FEN sequence
+                    exportFENSequence(selectedFile);
+                }
+
+                // Log the export
+                logMove("Game exported to " + selectedFile.getName());
+
+                // Show confirmation
+                JOptionPane.showMessageDialog(this,
+                        "Game history exported to " + selectedFile.getAbsolutePath(),
+                        "Export Successful",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                        "Error exporting game: " + e.getMessage(),
+                        "Export Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void applyFenPosition() {
+        String fen = fenInputField.getText().trim();
+        if (fen.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a valid FEN string",
+                    "Invalid FEN",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Create a new board to validate the FEN first
+        Board tempBoard = new Board();
+        boolean success = FenParser.loadPosition(tempBoard, fen);
+
+        if (success) {
+            // Apply to the actual board
+            FenParser.loadPosition(board, fen);
+            boardPanel.repaint();
+            selectedSquare = null;
+            logMove("Applied FEN position: " + fen);
+            updateGameStatus();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "The FEN string is invalid. Please check and try again.",
+                    "Invalid FEN",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Copy the current board position as FEN to clipboard
+     */
+    private void copyCurrentFen() {
+        String currentFen = FenGenerator.generateFen(board);
+
+        // Copy to clipboard
+        StringSelection selection = new StringSelection(currentFen);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, selection);
+
+        // Update the FEN input field
+        fenInputField.setText(currentFen);
+
+        // Log the action
+        logMove("Copied current FEN: " + currentFen);
+
+        // Optional: Show a confirmation message
+        JOptionPane.showMessageDialog(this,
+                "Current FEN position copied to clipboard!",
+                "FEN Copied",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // Add method to export PGN
+    private void exportPGN(File file) throws IOException {
+        StringBuilder pgn = new StringBuilder();
+
+        // Add PGN headers
+        pgn.append("[Event \"Chess Game\"]\n");
+        pgn.append("[Site \"?\"]\n");
+        pgn.append("[Date \"").append(java.time.LocalDate.now()).append("\"]\n");
+        pgn.append("[Round \"?\"]\n");
+        pgn.append("[White \"Human\"]\n");
+        pgn.append("[Black \"Computer\"]\n");
+
+        // Add game result
+        String result = "*";
+        if (board.isCheckmate()) {
+            result = board.isWhiteToMove() ? "0-1" : "1-0";
+        } else if (board.isStalemate() || board.isDraw()) {
+            result = "1/2-1/2";
+        }
+        pgn.append("[Result \"").append(result).append("\"]\n\n");
+
+        // Get moves in PGN format
+        List<String> pgnMoves = board.getGameHistoryAsPGN();
+
+        // Format moves with proper spacing
+        for (int i = 0; i < pgnMoves.size(); i++) {
+            pgn.append(pgnMoves.get(i));
+            pgn.append(" ");
+
+            // Add line breaks every 5 move pairs for readability
+            if (i % 10 == 9) {
+                pgn.append("\n");
+            }
+        }
+
+        // Add the result at the end
+        pgn.append(result);
+
+        // Write to file
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write(pgn.toString());
+        }
+    }
+
+    // Add method to export FEN sequence
+    private void exportFENSequence(File file) throws IOException {
+        // Get the list of FEN strings representing the game history
+        List<String> fenHistory = board.getGameHistoryAsFEN();
+
+        // Join them with newlines
+        StringBuilder fenSequence = new StringBuilder();
+        for (String fen : fenHistory) {
+            fenSequence.append(fen).append("\n");
+        }
+
+        // Write to file
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write(fenSequence.toString());
+        }
     }
 
     private void resetBoard() {
