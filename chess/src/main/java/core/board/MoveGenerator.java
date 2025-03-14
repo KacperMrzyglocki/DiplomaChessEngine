@@ -634,8 +634,8 @@ public class MoveGenerator {
         if (byWhite) {
             // Check for attacks by white pawns
             long pawns = board.getWhitePawns();
-            if ((((Bitboard.getBit(square) >> 7) & ~BitboardConstants.FILE_H) & pawns) != 0 ||
-                    (((Bitboard.getBit(square) >> 9) & ~BitboardConstants.FILE_A) & pawns) != 0) {
+            if ((((Bitboard.getBit(square) << 7) & ~BitboardConstants.FILE_A) & pawns) != 0 ||
+                    (((Bitboard.getBit(square) << 9) & ~BitboardConstants.FILE_H) & pawns) != 0) {
                 return true;
             }
 
@@ -663,8 +663,8 @@ public class MoveGenerator {
         } else {
             // Check for attacks by black pawns
             long pawns = board.getBlackPawns();
-            if ((((Bitboard.getBit(square) << 7) & ~BitboardConstants.FILE_A) & pawns) != 0 ||
-                    (((Bitboard.getBit(square) << 9) & ~BitboardConstants.FILE_H) & pawns) != 0) {
+            if ((((Bitboard.getBit(square) >> 7) & ~BitboardConstants.FILE_H) & pawns) != 0 ||
+                    (((Bitboard.getBit(square) >> 9) & ~BitboardConstants.FILE_A) & pawns) != 0) {
                 return true;
             }
 
