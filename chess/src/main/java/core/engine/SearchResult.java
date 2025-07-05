@@ -15,15 +15,12 @@ public class SearchResult {
         this.score = score;
         this.nodesSearched = nodesSearched;
     }
-
     public Move getBestMove() {
         return bestMove;
     }
-
     public int getScore() {
         return score;
     }
-
     public int getNodesSearched() {
         return nodesSearched;
     }

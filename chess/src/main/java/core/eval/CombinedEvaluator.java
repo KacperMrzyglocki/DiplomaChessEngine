@@ -10,32 +10,12 @@ import java.util.List;
  */
 public class CombinedEvaluator implements Evaluator {
     private final List<Evaluator> evaluators;
-
-    // Constants for mate and stalemate values
     public static final int MATE_VALUE = Integer.MAX_VALUE - 1000; // Slightly less than max to allow for search depth adjustments
     public static final int STALEMATE_VALUE = 0;
 
-    /**
-     * Creates a new combined evaluator with no evaluators
-     */
     public CombinedEvaluator() {
         this.evaluators = new ArrayList<>();
     }
-
-    /**
-     * Creates a new combined evaluator with the specified evaluators
-     *
-     * @param evaluators The evaluators to combine
-     */
-    public CombinedEvaluator(List<Evaluator> evaluators) {
-        this.evaluators = new ArrayList<>(evaluators);
-    }
-
-    /**
-     * Adds an evaluator to this combined evaluator
-     *
-     * @param evaluator The evaluator to add
-     */
     public void addEvaluator(Evaluator evaluator) {
         evaluators.add(evaluator);
     }
@@ -60,8 +40,6 @@ public class CombinedEvaluator implements Evaluator {
             int eval = evaluator.evaluate(board);
             score += eval;
         }
-
-        System.out.println("Normal evaluation: " + score);
         return score;
     }
 }

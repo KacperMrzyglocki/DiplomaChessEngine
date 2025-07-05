@@ -20,17 +20,9 @@ public class Move {
     // 12-13: Promotion piece type (0-3 for Q, R, B, N)
     // 14-15: Move type (NORMAL, PAWN_PROMOTION, EN_PASSANT, CASTLING)
     private final int moveData;
-
-    /**
-     * Create a normal move
-     */
     public Move(int from, int to) {
         this.moveData = from | (to << 6) | (NORMAL << 14);
     }
-
-    /**
-     * Private constructor used by factory methods
-     */
     private Move(int from, int to, int extraData, int moveType) {
         if (moveType == PAWN_PROMOTION) {
             // For promotion moves, extraData is the promotion piece type
@@ -40,25 +32,15 @@ public class Move {
             this.moveData = from | (to << 6) | (moveType << 14);
         }
     }
-
-    /**
-     * Static factory method for promotion moves
-     */
     public static Move promotion(int from, int to, int promotionPieceType) {
         return new Move(from, to, promotionPieceType, PAWN_PROMOTION);
     }
-
-    /**
-     * Static factory method for special moves (en passant, castling)
-     */
     public static Move special(int from, int to, int moveType) {
         if (moveType == PAWN_PROMOTION) {
             throw new IllegalArgumentException("Use promotion() factory method for pawn promotions");
         }
         return new Move(from, to, 0, moveType);
     }
-
-    // Getters
     public int getFrom() {
         return moveData & 0x3F;
     }
@@ -74,14 +56,10 @@ public class Move {
     public int getMoveType() {
         return (moveData >> 14) & 0x3;
     }
-
-    public int getMoveData() {
-        return moveData;
+    public boolean isPromotion() {
+        return getMoveType() == PAWN_PROMOTION;
     }
 
-    /**
-     * Convert the move to algebraic notation (e.g., "e2e4", "a7a8q")
-     */
     @Override
     public String toString() {
         String[] files = {"a", "b", "c", "d", "e", "f", "g", "h"};

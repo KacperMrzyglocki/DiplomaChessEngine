@@ -14,10 +14,6 @@ public class MoveGenerator {
     public MoveGenerator() {
         initializeAttackTables();
     }
-
-    /**
-     * Initialize precomputed attack tables for non-sliding pieces
-     */
     private void initializeAttackTables() {
         // Knight moves
         int[] knightOffsets = {-17, -15, -10, -6, 6, 10, 15, 17};
@@ -45,10 +41,6 @@ public class MoveGenerator {
             kingAttacks[square] = attacks;
         }
     }
-
-    /**
-     * Helper method to get the distance between two squares (for move validation)
-     */
     private int getSquareDistance(int sq1, int sq2) {
         int file1 = sq1 % 8;
         int rank1 = sq1 / 8;
@@ -57,10 +49,6 @@ public class MoveGenerator {
 
         return Math.max(Math.abs(file1 - file2), Math.abs(rank1 - rank2));
     }
-
-    /**
-     * Generate all legal moves for the current position
-     */
     public void generateLegalMoves(Board board, MoveList moveList) {
         // Clear the move list
         moveList.clear();
@@ -75,10 +63,6 @@ public class MoveGenerator {
         // Filter out illegal moves (those that leave the king in check)
         filterIllegalMoves(board, moveList);
     }
-
-    /**
-     * Generate all pseudo-legal moves for white
-     */
     private void generateWhiteMoves(Board board, MoveList moveList) {
         long whitePieces = board.getWhitePieces();
         long blackPieces = board.getBlackPieces();
@@ -98,16 +82,11 @@ public class MoveGenerator {
         generateRookMoves(board, moveList, board.getWhiteRooks(), emptySquares, blackPieces, allPieces);
 
         // Generate queen moves (combination of bishop and rook)
-        generateBishopMoves(board, moveList, board.getWhiteQueens(), emptySquares, blackPieces, allPieces);
-        generateRookMoves(board, moveList, board.getWhiteQueens(), emptySquares, blackPieces, allPieces);
+        generateQueenMoves(board, moveList, board.getWhiteQueens(), emptySquares, blackPieces, allPieces);
 
         // Generate king moves
         generateWhiteKingMoves(board, moveList, emptySquares, blackPieces);
     }
-
-    /**
-     * Generate all pseudo-legal moves for black
-     */
     private void generateBlackMoves(Board board, MoveList moveList) {
         long whitePieces = board.getWhitePieces();
         long blackPieces = board.getBlackPieces();
@@ -127,16 +106,38 @@ public class MoveGenerator {
         generateRookMoves(board, moveList, board.getBlackRooks(), emptySquares, whitePieces, allPieces);
 
         // Generate queen moves (combination of bishop and rook)
-        generateBishopMoves(board, moveList, board.getBlackQueens(), emptySquares, whitePieces, allPieces);
-        generateRookMoves(board, moveList, board.getBlackQueens(), emptySquares, whitePieces, allPieces);
+        generateQueenMoves(board, moveList, board.getBlackQueens(), emptySquares, whitePieces, allPieces);
 
         // Generate king moves
         generateBlackKingMoves(board, moveList, emptySquares, whitePieces);
     }
+    private void generateQueenMoves(Board board, MoveList moveList, long queens, long emptySquares, long enemyPieces, long allPieces) {
+        while (queens != 0) {
+            int from = Bitboard.getLSB(queens);
 
-    /**
-     * Generate white pawn moves
-     */
+            // Combine diagonal and horizontal/vertical attacks
+            long attacks = generateDiagonalAttacks(from, allPieces) |
+                    generateHorizontalAndVerticalAttacks(from, allPieces);
+
+            // Captures
+            long captures = attacks & enemyPieces;
+            while (captures != 0) {
+                int to = Bitboard.getLSB(captures);
+                moveList.add(new Move(from, to));
+                captures = Bitboard.popLSB(captures);
+            }
+
+            // Quiet moves
+            long quietMoves = attacks & emptySquares;
+            while (quietMoves != 0) {
+                int to = Bitboard.getLSB(quietMoves);
+                moveList.add(new Move(from, to));
+                quietMoves = Bitboard.popLSB(quietMoves);
+            }
+
+            queens = Bitboard.popLSB(queens);
+        }
+    }
     private void generateWhitePawnMoves(Board board, MoveList moveList, long emptySquares, long blackPieces) {
         long whitePawns = board.getWhitePawns();
 
@@ -147,10 +148,8 @@ public class MoveGenerator {
         long doublePush = ((singlePush & BitboardConstants.RANK_3) << 8) & emptySquares;
 
         // Captures to the right
-        long captureRight = (whitePawns << 9) & blackPieces & ~BitboardConstants.FILE_A;
-
-        // Captures to the left
-        long captureLeft = (whitePawns << 7) & blackPieces & ~BitboardConstants.FILE_H;
+        long captureRight = ((whitePawns & ~BitboardConstants.FILE_H) << 9) & blackPieces;
+        long captureLeft = ((whitePawns & ~BitboardConstants.FILE_A) << 7) & blackPieces;
 
         // En passant captures
         int epSquare = board.getEnPassantSquare();
@@ -230,10 +229,6 @@ public class MoveGenerator {
             captureLeft = Bitboard.popLSB(captureLeft);
         }
     }
-
-    /**
-     * Generate black pawn moves
-     */
     private void generateBlackPawnMoves(Board board, MoveList moveList, long emptySquares, long whitePieces) {
         long blackPawns = board.getBlackPawns();
 
@@ -243,11 +238,8 @@ public class MoveGenerator {
         // Double push
         long doublePush = ((singlePush & BitboardConstants.RANK_6) >> 8) & emptySquares;
 
-        // Captures to the right
-        long captureRight = (blackPawns >> 7) & whitePieces & ~BitboardConstants.FILE_A;
-
-        // Captures to the left
-        long captureLeft = (blackPawns >> 9) & whitePieces & ~BitboardConstants.FILE_H;
+        long captureRight = ((blackPawns & ~BitboardConstants.FILE_H) >> 7) & whitePieces;
+        long captureLeft = ((blackPawns & ~BitboardConstants.FILE_A) >> 9) & whitePieces;
 
         // En passant captures
         int epSquare = board.getEnPassantSquare();
@@ -327,10 +319,6 @@ public class MoveGenerator {
             captureLeft = Bitboard.popLSB(captureLeft);
         }
     }
-
-    /**
-     * Generate knight moves
-     */
     private void generateKnightMoves(Board board, MoveList moveList, long knights, long emptySquares, long enemyPieces) {
         while (knights != 0) {
             int from = Bitboard.getLSB(knights);
@@ -355,10 +343,6 @@ public class MoveGenerator {
             knights = Bitboard.popLSB(knights);
         }
     }
-
-    /**
-     * Generate bishop moves
-     */
     private void generateBishopMoves(Board board, MoveList moveList, long bishops, long emptySquares, long enemyPieces, long allPieces) {
         while (bishops != 0) {
             int from = Bitboard.getLSB(bishops);
@@ -385,10 +369,6 @@ public class MoveGenerator {
             bishops = Bitboard.popLSB(bishops);
         }
     }
-
-    /**
-     * Generate rook moves
-     */
     private void generateRookMoves(Board board, MoveList moveList, long rooks, long emptySquares, long enemyPieces, long allPieces) {
         while (rooks != 0) {
             int from = Bitboard.getLSB(rooks);
@@ -415,10 +395,6 @@ public class MoveGenerator {
             rooks = Bitboard.popLSB(rooks);
         }
     }
-
-    /**
-     * Generate white king moves including castling
-     */
     private void generateWhiteKingMoves(Board board, MoveList moveList, long emptySquares, long blackPieces) {
         long whiteKing = board.getWhiteKing();
         if (whiteKing == 0) return;
@@ -465,10 +441,6 @@ public class MoveGenerator {
             }
         }
     }
-
-    /**
-     * Generate black king moves including castling
-     */
     private void generateBlackKingMoves(Board board, MoveList moveList, long emptySquares, long whitePieces) {
         long blackKing = board.getBlackKing();
         if (blackKing == 0) return;
@@ -515,10 +487,6 @@ public class MoveGenerator {
             }
         }
     }
-
-    /**
-     * Generate diagonal attacks (for bishops and queens)
-     */
     private long generateDiagonalAttacks(int square, long occupancy) {
         // In a real engine, this would use magic bitboards or similar techniques
         // This is a simplified implementation
@@ -558,10 +526,6 @@ public class MoveGenerator {
 
         return result;
     }
-
-    /**
-     * Generate horizontal and vertical attacks (for rooks and queens)
-     */
     private long generateHorizontalAndVerticalAttacks(int square, long occupancy) {
         // In a real engine, this would use magic bitboards or similar techniques
         // This is a simplified implementation
@@ -601,19 +565,20 @@ public class MoveGenerator {
 
         return result;
     }
-
-    /**
-     * Filter out illegal moves (those that leave the king in check)
-     */
     private void filterIllegalMoves(Board board, MoveList moveList) {
         MoveList legalMoves = new MoveList(moveList.size());
 
         for (int i = 0; i < moveList.size(); i++) {
             Move move = moveList.get(i);
+
+            // Remember whose turn it is before making the move
+            boolean wasWhiteToMove = board.isWhiteToMove();
+
             board.makeSearchMove(move);
 
-            // If after making the move, our king is not in check, the move is legal
-            if (!isKingInCheck(board, !board.isWhiteToMove())) {
+            // After making the move, check if OUR king (the side that just moved) is in check
+            // Since the turn has flipped, we need to check the opposite of the current turn
+            if (!isKingInCheck(board, wasWhiteToMove)) {
                 legalMoves.add(move);
             }
 
@@ -626,17 +591,23 @@ public class MoveGenerator {
             moveList.add(legalMoves.get(i));
         }
     }
-
-    /**
-     * Check if the specified square is under attack
-     */
     private boolean isSquareAttacked(Board board, int square, boolean byWhite) {
         if (byWhite) {
             // Check for attacks by white pawns
             long pawns = board.getWhitePawns();
-            if ((((Bitboard.getBit(square) << 7) & ~BitboardConstants.FILE_A) & pawns) != 0 ||
-                    (((Bitboard.getBit(square) << 9) & ~BitboardConstants.FILE_H) & pawns) != 0) {
-                return true;
+            int rank = square / 8;
+            int file = square % 8;
+
+// Check if white pawn on southwest diagonal (rank-1, file-1) attacks this square
+            if (rank > 0 && file > 0) {
+                int pawnSquare = (rank - 1) * 8 + (file - 1);
+                if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
+            }
+
+// Check if white pawn on southeast diagonal (rank-1, file+1) attacks this square
+            if (rank > 0 && file < 7) {
+                int pawnSquare = (rank - 1) * 8 + (file + 1);
+                if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
             }
 
             // Check for attacks by white knights
@@ -663,9 +634,19 @@ public class MoveGenerator {
         } else {
             // Check for attacks by black pawns
             long pawns = board.getBlackPawns();
-            if ((((Bitboard.getBit(square) >> 7) & ~BitboardConstants.FILE_H) & pawns) != 0 ||
-                    (((Bitboard.getBit(square) >> 9) & ~BitboardConstants.FILE_A) & pawns) != 0) {
-                return true;
+            int rank = square / 8;
+            int file = square % 8;
+
+// Check if white pawn on southwest diagonal (rank-1, file-1) attacks this square
+            if (rank > 0 && file > 0) {
+                int pawnSquare = (rank + 1) * 8 + (file - 1);
+                if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
+            }
+
+// Check if white pawn on southeast diagonal (rank-1, file+1) attacks this square
+            if (rank > 0 && file < 7) {
+                int pawnSquare = (rank + 1) * 8 + (file + 1);
+                if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
             }
 
             // Check for attacks by black knights
@@ -693,26 +674,11 @@ public class MoveGenerator {
 
         return false;
     }
-
-    /**
-     * Check if the king of the specified side is in check
-     */
     public boolean isKingInCheck(Board board, boolean whiteKing) {
         long king = whiteKing ? board.getWhiteKing() : board.getBlackKing();
         if (king == 0) return false; // No king on the board
 
         int kingSquare = Bitboard.getLSB(king);
         return isSquareAttacked(board, kingSquare, !whiteKing);
-    }
-
-    /**
-     * Add methods to get access to attack tables for external use
-     */
-    public long getKnightAttacks(int square) {
-        return knightAttacks[square];
-    }
-
-    public long getKingAttacks(int square) {
-        return kingAttacks[square];
     }
 }

@@ -28,14 +28,6 @@ public class Minimax {
         ((CombinedEvaluator)evaluator).addEvaluator(new KingSafetyEvaluator());
         this.moveGenerator = moveGenerator;
     }
-
-    /**
-     * Find the best move using minimax with alpha-beta pruning
-     *
-     * @param board The current board position
-     * @param depth Maximum search depth
-     * @return The best move and its evaluation
-     */
     public SearchResult findBestMove(Board board, int depth) {
         nodesSearched = 0;
         searchPositionHistory = new HashMap<>();
@@ -81,19 +73,6 @@ public class Minimax {
         System.out.println("Selected best move: " + bestMove + " with score: " + bestScore);
         return new SearchResult(bestMove, bestScore, nodesSearched);
     }
-
-
-
-
-    /**
-     * Alpha-beta minimax search
-     *
-     * @param board The current board position
-     * @param depth Remaining search depth
-     * @param alpha Alpha value for pruning
-     * @param beta Beta value for pruning
-     * @return The evaluation of the position
-     */
     private int alphaBeta(Board board, int depth, int alpha, int beta, boolean isMaximizing) {
         nodesSearched++;
 
@@ -148,6 +127,4 @@ public class Minimax {
             return minEval;
         }
     }
-
-
 }

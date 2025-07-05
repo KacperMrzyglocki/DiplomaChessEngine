@@ -32,7 +32,7 @@ import core.fen.FenGenerator;
 import core.fen.FenConstants;
 
 public class ChessGUI extends JFrame {
-    private final Board board;
+    private Board board;
     private final ChessEngine engine;
     private final BoardPanel boardPanel;
     private Square selectedSquare = null;
@@ -40,12 +40,7 @@ public class ChessGUI extends JFrame {
     private JLabel gameStatusLabel;
     private JTextField fenInputField;
 
-    // Standard starting position in FEN notation
-    private static final String STARTING_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-    // Image cache for pieces
     private final Map<Character, Image> pieceImages = new HashMap<>();
-
     public ChessGUI() {
         this.board = new Board();
         this.engine = new ChessEngine();
@@ -118,7 +113,6 @@ public class ChessGUI extends JFrame {
         setLocationRelativeTo(null);
         setVisible(true);
     }
-
     private void exportGameHistory() {
         // Create a file chooser dialog
         JFileChooser fileChooser = new JFileChooser();
@@ -177,7 +171,6 @@ public class ChessGUI extends JFrame {
             }
         }
     }
-
     private void applyFenPosition() {
         String fen = fenInputField.getText().trim();
         if (fen.isEmpty()) {
@@ -206,10 +199,6 @@ public class ChessGUI extends JFrame {
                     JOptionPane.ERROR_MESSAGE);
         }
     }
-
-    /**
-     * Copy the current board position as FEN to clipboard
-     */
     private void copyCurrentFen() {
         String currentFen = FenGenerator.generateFen(board);
 
@@ -230,8 +219,6 @@ public class ChessGUI extends JFrame {
                 "FEN Copied",
                 JOptionPane.INFORMATION_MESSAGE);
     }
-
-    // Add method to export PGN
     private void exportPGN(File file) throws IOException {
         StringBuilder pgn = new StringBuilder();
 
@@ -274,8 +261,6 @@ public class ChessGUI extends JFrame {
             writer.write(pgn.toString());
         }
     }
-
-    // Add method to export FEN sequence
     private void exportFENSequence(File file) throws IOException {
         // Get the list of FEN strings representing the game history
         List<String> fenHistory = board.getGameHistoryAsFEN();
@@ -291,15 +276,14 @@ public class ChessGUI extends JFrame {
             writer.write(fenSequence.toString());
         }
     }
-
     private void resetBoard() {
+        board = new Board();
         board.setInitialPosition();
         boardPanel.repaint();
         selectedSquare = null;
         moveHistoryArea.setText("Game started with initial position.\n");
         updateGameStatus();
     }
-
     private void makeEngineMove() {
         // Check if the game is already over
         if (isGameOver()) {
@@ -314,10 +298,10 @@ public class ChessGUI extends JFrame {
         SearchResult result = engine.search(board);
         if (result.getBestMove() != null) {
             Move bestMove = result.getBestMove();
+            String algebraicMove = generateAlgebraicNotation(bestMove);
+            logMove("Engine: " + algebraicMove);
             board.makeMove(bestMove);
             boardPanel.repaint();
-            String algebraicMove = MoveNotation.toAlgebraic(bestMove);
-            logMove("Engine: " + algebraicMove);
             System.out.println("Engine move: " + algebraicMove);
             System.out.println("Evaluation: " + result.getScore());
 
@@ -329,7 +313,6 @@ public class ChessGUI extends JFrame {
             updateGameStatus(); // This will check for stalemate or checkmate
         }
     }
-
     private void undoMove() {
         board.undoMove();
         boardPanel.repaint();
@@ -337,16 +320,17 @@ public class ChessGUI extends JFrame {
         logMove("Move undone");
         updateGameStatus();
     }
-
     private void logMove(String moveText) {
         moveHistoryArea.append(moveText + "\n");
         // Scroll to the bottom
         moveHistoryArea.setCaretPosition(moveHistoryArea.getDocument().getLength());
     }
-
-    /**
-     * Check the current game state and update the UI accordingly
-     */
+    private String generateAlgebraicNotation(Move move) {
+        // Clone the current board to preserve its state
+        Board tempBoard = board.clone();
+        // Generate notation before making the move
+        return MoveNotation.toAlgebraic(tempBoard, move);
+    }
     private void updateGameStatus() {
         if (board.isCheckmate()) {
             String winner = board.isWhiteToMove() ? "Black" : "White";
@@ -383,21 +367,9 @@ public class ChessGUI extends JFrame {
             gameStatusLabel.setForeground(Color.BLACK);
         }
     }
-
-    /**
-     * Check if the game is over (checkmate, stalemate, or draw)
-     */
     private boolean isGameOver() {
         return board.isCheckmate() || board.isStalemate() || board.isDraw();
     }
-
-    /**
-     * Check if the specified side (white or black) is in checkmate
-     */
-    private boolean isCheckmated(boolean white) {
-        return board.isCheckmate() && board.isWhiteToMove() == white;
-    }
-
     private void loadPieceImages() {
         // Piece characters and corresponding filenames
         char[] pieceChars = {'p', 'n', 'b', 'r', 'q', 'k', 'P', 'N', 'B', 'R', 'Q', 'K'};
@@ -427,7 +399,6 @@ public class ChessGUI extends JFrame {
             }
         }
     }
-
     private Image createFallbackImage(char pieceChar) {
         // Create a simple image with the piece character
         int size = 64;
@@ -449,7 +420,6 @@ public class ChessGUI extends JFrame {
         g2d.dispose();
         return img;
     }
-
     private class BoardPanel extends JPanel {
         private static final int SQUARE_SIZE = 64;
 
@@ -538,9 +508,9 @@ public class ChessGUI extends JFrame {
                 }
 
                 if (matchingMove != null) {
-                    board.makeMove(matchingMove);
-                    String algebraicMove = MoveNotation.toAlgebraic(matchingMove);
+                    String algebraicMove = generateAlgebraicNotation(matchingMove);
                     logMove("Human: " + algebraicMove);
+                    board.makeMove(matchingMove);
                     selectedSquare = null;
                     possibleMoves.clear();  // Clear highlights
                     repaint();
@@ -550,7 +520,7 @@ public class ChessGUI extends JFrame {
 
                     // Make engine move if game is not over
                     if (!isGameOver()) {
-                        SwingUtilities.invokeLater(() -> makeEngineMove());
+                        //SwingUtilities.invokeLater(() -> makeEngineMove());
                     }
                 } else {
                     if (board.getPiece(squareIndex) != 0) {
@@ -677,7 +647,6 @@ public class ChessGUI extends JFrame {
             }
         }
     }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(ChessGUI::new);
     }

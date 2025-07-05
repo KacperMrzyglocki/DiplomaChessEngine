@@ -1,133 +1,182 @@
 package core.util;
 
-/**
- * Utility class for handling chess move notation conversions.
- * Supports conversion between different notations like algebraic, coordinate, etc.
- */
+import core.board.Board;
+import core.board.Move;
 public class MoveNotation {
-
-    /**
-     * Converts a move in algebraic notation to internal representation.
-     *
-     * @param algebraicMove The move in algebraic notation (e.g., "e4", "Nf3")
-     * @return The move in internal representation
-     */
-    public static String algebraicToInternal(String algebraicMove) {
-        // Simple implementation for common pawn moves
-        if (algebraicMove.length() == 2) {
-            char file = algebraicMove.charAt(0);
-            char rank = algebraicMove.charAt(1);
-
-            // Assuming the format is like "e4" for a pawn move
-            if (file >= 'a' && file <= 'h' && rank >= '1' && rank <= '8') {
-                int fileIndex = file - 'a';
-                int rankIndex = rank - '1';
-
-                // We need to infer the source square based on game rules
-                // This is a simplified implementation
-                return "P" + file + rank;
-            }
-        }
-        // Handle piece moves (e.g., "Nf3")
-        else if (algebraicMove.length() == 3) {
-            char piece = algebraicMove.charAt(0);
-            char file = algebraicMove.charAt(1);
-            char rank = algebraicMove.charAt(2);
-
-            if (file >= 'a' && file <= 'h' && rank >= '1' && rank <= '8') {
-                return piece + String.valueOf(file) + rank;
-            }
-        }
-
-        // This is a simplified implementation
-        return algebraicMove;
-    }
-
-    /**
-     * Converts internal move representation to algebraic notation.
-     *
-     * @param internalMove The move in internal representation
-     * @return The move in algebraic notation
-     */
-    public static String internalToAlgebraic(String internalMove) {
-        // Simple implementation - reverse of the above
-        if (internalMove.length() >= 3) {
-            // Skip the piece identifier for pawns
-            if (internalMove.charAt(0) == 'P') {
-                return internalMove.substring(1);
-            } else {
-                return internalMove;
-            }
-        }
-        return internalMove;
-    }
-
-    /**
-     * Converts a move from long algebraic notation to standard algebraic notation.
-     *
-     * @param longAlgebraic The move in long algebraic notation (e.g., "e2e4")
-     * @return The move in standard algebraic notation (e.g., "e4")
-     */
-    public static String longToStandardAlgebraic(String longAlgebraic) {
-        if (longAlgebraic.length() == 4) {
-            // Simple pawn move like "e2e4" becomes "e4"
-            return String.valueOf(longAlgebraic.charAt(2)) + longAlgebraic.charAt(3);
-        }
-        return longAlgebraic;
-    }
-
-    /**
-     * Validates if a string represents a valid move in algebraic notation.
-     *
-     * @param moveStr The move string to validate
-     * @return true if the move is valid, false otherwise
-     */
-    public static boolean isValidAlgebraic(String moveStr) {
-        if (moveStr == null || moveStr.isEmpty()) {
-            return false;
-        }
-
-        // Simple validation for pawn moves like "e4"
-        if (moveStr.length() == 2) {
-            char file = moveStr.charAt(0);
-            char rank = moveStr.charAt(1);
-            return file >= 'a' && file <= 'h' && rank >= '1' && rank <= '8';
-        }
-
-        // Simple validation for piece moves like "Nf3"
-        if (moveStr.length() == 3) {
-            char piece = moveStr.charAt(0);
-            char file = moveStr.charAt(1);
-            char rank = moveStr.charAt(2);
-            return (piece == 'N' || piece == 'B' || piece == 'R' || piece == 'Q' || piece == 'K') &&
-                    file >= 'a' && file <= 'h' && rank >= '1' && rank <= '8';
-        }
-
-        // More complex validation for captures and checks would go here
-        return false;
-    }
-
-    /**
-     * Converts a core.board.Move object to algebraic notation
-     *
-     * @param move The Move object
-     * @return The move in algebraic notation
-     */
-    public static String toAlgebraic(core.board.Move move) {
+    public static String toAlgebraic(Board board, Move move) {
         if (move == null) {
             return "";
         }
 
         int fromSquare = move.getFrom();
         int toSquare = move.getTo();
+        int pieceType = board.getPieceType(fromSquare);
+        boolean isCapture = board.hasPiece(toSquare) || (pieceType == Piece.PAWN && toSquare == board.getEnPassantSquare());
+        boolean isCheck = false;
+        boolean isCheckmate = false;
 
-        char fromFile = (char)('a' + (fromSquare % 8));
-        char fromRank = (char)('1' + (fromSquare / 8));
-        char toFile = (char)('a' + (toSquare % 8));
-        char toRank = (char)('1' + (toSquare / 8));
+        // Make the move on a temporary board to check for check/checkmate
+        Board tempBoard = board.clone();
+        tempBoard.makeMove(move);
 
-        // Simple implementation for now - just return the destination square
-        // A real implementation would include the piece type and handle special cases
-        return String.valueOf(toFile) + toRank;
+        if (tempBoard.isInCheck()) {
+            isCheck = true;
+
+            // Check if it's checkmate
+            if (tempBoard.isCheckmate()) {
+                isCheckmate = true;
+            }
+        }
+
+        StringBuilder algebraic = new StringBuilder();
+
+        // Castling
+        if (pieceType == Piece.KING && Math.abs(fromSquare - toSquare) == 2) {
+            if (toSquare > fromSquare) {
+                algebraic.append("O-O"); // Kingside castling
+            } else {
+                algebraic.append("O-O-O"); // Queenside castling
+            }
+        } else {
+            // Non-castling moves
+            char pieceChar = getPieceChar(pieceType);
+
+            // Add piece type except for pawns
+            if (pieceType != Piece.PAWN) {
+                algebraic.append(pieceChar);
+            }
+
+            // Check if disambiguation is needed
+            if (needsDisambiguation(board, move)) {
+                char fromFile = (char)('a' + (fromSquare % 8));
+                char fromRank = (char)('1' + (fromSquare / 8));
+
+                // Try to use file first, then rank, then both
+                if (isFileDisambiguationSufficient(board, move)) {
+                    algebraic.append(fromFile);
+                } else if (isRankDisambiguationSufficient(board, move)) {
+                    algebraic.append(fromRank);
+                } else {
+                    algebraic.append(fromFile).append(fromRank);
+                }
+            }
+
+            // Add capture symbol if needed
+            if (isCapture) {
+                if (pieceType == Piece.PAWN) {
+                    char fromFile = (char)('a' + (fromSquare % 8));
+                    algebraic.append(fromFile);
+                }
+                algebraic.append("x");
+            }
+
+            // Add destination square
+            char toFile = (char)('a' + (toSquare % 8));
+            char toRank = (char)('1' + (toSquare / 8));
+            algebraic.append(toFile).append(toRank);
+
+            // Add promotion if applicable
+            if (move.isPromotion()) {
+                algebraic.append("=").append(getPieceChar(move.getPromotionPieceType()));
+            }
+        }
+
+        // Add check or checkmate symbol
+        if (isCheckmate) {
+            algebraic.append("#");
+        } else if (isCheck) {
+            algebraic.append("+");
+        }
+
+        return algebraic.toString();
+    }
+    private static char getPieceChar(int pieceType) {
+        switch (pieceType) {
+            case Piece.KING: return 'K';
+            case Piece.QUEEN: return 'Q';
+            case Piece.ROOK: return 'R';
+            case Piece.BISHOP: return 'B';
+            case Piece.KNIGHT: return 'N';
+            case Piece.PAWN: return 'P';
+            default: return '?';
+        }
+    }
+    private static boolean needsDisambiguation(Board board, Move move) {
+        int fromSquare = move.getFrom();
+        int toSquare = move.getTo();
+        int pieceType = board.getPieceType(fromSquare);
+        boolean isWhitePiece = board.isWhitePiece(fromSquare);
+
+        // Pawns use file disambiguation only for captures, which is handled separately
+        if (pieceType == Piece.PAWN) {
+            return false;
+        }
+
+        // Find all pieces of the same type and color that can move to the same square
+        for (int square = 0; square < 64; square++) {
+            if (square == fromSquare) continue;
+
+            if (board.hasPiece(square) &&
+                    board.getPieceType(square) == pieceType &&
+                    board.isWhitePiece(square) == isWhitePiece) {
+
+                // Check if this piece can legally move to the destination
+                if (board.isLegalMove(new Move(square, toSquare))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+    private static boolean isFileDisambiguationSufficient(Board board, Move move) {
+        int fromSquare = move.getFrom();
+        int toSquare = move.getTo();
+        int pieceType = board.getPieceType(fromSquare);
+        boolean isWhitePiece = board.isWhitePiece(fromSquare);
+        int fromFile = fromSquare % 8;
+
+        // Check if any piece of the same type and color on a different file can move to the same square
+        for (int square = 0; square < 64; square++) {
+            if (square == fromSquare) continue;
+
+            if (board.hasPiece(square) &&
+                    board.getPieceType(square) == pieceType &&
+                    board.isWhitePiece(square) == isWhitePiece &&
+                    square % 8 != fromFile) {
+
+                // Check if this piece can legally move to the destination
+                if (board.isLegalMove(new Move(square, toSquare))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+    private static boolean isRankDisambiguationSufficient(Board board, Move move) {
+        int fromSquare = move.getFrom();
+        int toSquare = move.getTo();
+        int pieceType = board.getPieceType(fromSquare);
+        boolean isWhitePiece = board.isWhitePiece(fromSquare);
+        int fromRank = fromSquare / 8;
+
+        // Check if any piece of the same type and color on a different rank can move to the same square
+        for (int square = 0; square < 64; square++) {
+            if (square == fromSquare) continue;
+
+            if (board.hasPiece(square) &&
+                    board.getPieceType(square) == pieceType &&
+                    board.isWhitePiece(square) == isWhitePiece &&
+                    square / 8 != fromRank) {
+
+                // Check if this piece can legally move to the destination
+                if (board.isLegalMove(new Move(square, toSquare))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

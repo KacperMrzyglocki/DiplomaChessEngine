@@ -2,29 +2,11 @@ package core.fen;
 
 import core.board.Board;
 
-/**
- * Utility class for parsing FEN strings into board positions
- */
 public class FenParser {
 
-    /**
-     * Load a position from a FEN string to a board
-     *
-     * @param board The board to set up
-     * @param fen The FEN string to parse
-     * @return True if loading was successful
-     */
     public static boolean loadPosition(Board board, String fen) {
         return parseFen(fen, board);
     }
-
-    /**
-     * Parse a FEN string and set up the board position
-     *
-     * @param fen The FEN string to parse
-     * @param board The board to set up
-     * @return True if parsing was successful
-     */
     public static boolean parseFen(String fen, Board board) {
         // Check for null or empty FEN
         if (fen == null || fen.trim().isEmpty()) {
@@ -132,7 +114,6 @@ public class FenParser {
             }
         }
 
-        // Verify that the position is valid
         return board.isValid();
     }
 }

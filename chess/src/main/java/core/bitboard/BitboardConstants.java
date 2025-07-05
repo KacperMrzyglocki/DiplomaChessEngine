@@ -1,8 +1,5 @@
 package core.bitboard;
 
-/**
- * Constants for commonly used bitboards in chess
- */
 public class BitboardConstants {
     // Files (vertical columns)
     public static final long FILE_A = 0x0101010101010101L;
@@ -24,26 +21,6 @@ public class BitboardConstants {
     public static final long RANK_7 = 0x00FF000000000000L;
     public static final long RANK_8 = 0xFF00000000000000L;
 
-    // Board edges
-    public static final long EDGE_LEFT = FILE_A;
-    public static final long EDGE_RIGHT = FILE_H;
-    public static final long EDGE_TOP = RANK_8;
-    public static final long EDGE_BOTTOM = RANK_1;
-    public static final long EDGE_ALL = EDGE_LEFT | EDGE_RIGHT | EDGE_TOP | EDGE_BOTTOM;
-
-    // Center squares
-    public static final long CENTER_4 = 0x0000001818000000L; // d4, e4, d5, e5
-    public static final long CENTER_16 = 0x00007E7E7E7E0000L; // c3-f3, c4-f4, c5-f5, c6-f6
-
-    // Diagonals
-    public static final long DIAGONAL_A1_H8 = 0x8040201008040201L;
-    public static final long DIAGONAL_H1_A8 = 0x0102040810204080L;
-
-    // Colors
-    public static final long LIGHT_SQUARES = 0x55AA55AA55AA55AAL;
-    public static final long DARK_SQUARES = 0xAA55AA55AA55AA55L;
-
-    // Castle squares and paths
     public static final long WHITE_KINGSIDE_CASTLE_MASK = 0x0000000000000060L;   // f1, g1
     public static final long WHITE_QUEENSIDE_CASTLE_MASK = 0x000000000000000EL;  // b1, c1, d1
     public static final long BLACK_KINGSIDE_CASTLE_MASK = 0x6000000000000000L;   // f8, g8
