@@ -1,4 +1,5 @@
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\eval\PawnStructureEvaluator.java
+C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\util\Piece.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\engine\SearchParameters.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\util\Square.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\eval\GamePhaseDetector.java
@@ -9,6 +10,7 @@ C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\board\Boa
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\fen\FenParser.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\engine\ChessEngine.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\engine\SearchResult.java
+C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\chess\LichessBotStarter.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\util\MoveNotation.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\gui\ChessGUI.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\board\Move.java
@@ -17,9 +19,7 @@ C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\eval\Comb
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\bitboard\Bitboard.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\eval\KingSafetyEvaluator.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\eval\PositionalEvaluator.java
-C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\fen\FenValidator.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\fen\FenGenerator.java
-C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\fen\FenUtility.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\chess\ChessMain.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\eval\MaterialEvaluator.java
 C:\Users\kacperr\Desktop\studia programowanie\chess\src\main\java\core\eval\EndgameEvaluator.java

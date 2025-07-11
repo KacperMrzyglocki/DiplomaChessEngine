@@ -18,5 +18,9 @@ public class ChessMain {
 
         // Start the GUI on the EDT
         SwingUtilities.invokeLater(ChessGUI::new);
+
+        // Start Lichess bot
+        //String lichessToken = "your-lichess-token";
+        //LichessBotStarter.start(lichessToken);
     }
 }

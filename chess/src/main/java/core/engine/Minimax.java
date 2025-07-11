@@ -9,27 +9,28 @@ import core.eval.*;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Basic minimax implementation with alpha-beta pruning
- */
+
 public class Minimax {
-    private final Evaluator evaluator;
+    private final CombinedEvaluator evaluator;
     private final MoveGenerator moveGenerator;
     private int nodesSearched;
+    private int maxDepth; // Track the original search depth
 
     private Map<Long, Integer> searchPositionHistory;
 
-    public Minimax(Evaluator evaluator, MoveGenerator moveGenerator) {
+    public Minimax(CombinedEvaluator evaluator, MoveGenerator moveGenerator) {
         this.evaluator = evaluator;
-        ((CombinedEvaluator)evaluator).addEvaluator(new MaterialEvaluator());
-        ((CombinedEvaluator)evaluator).addEvaluator(new PositionalEvaluator());
-        ((CombinedEvaluator)evaluator).addEvaluator(new PawnStructureEvaluator());
-        ((CombinedEvaluator)evaluator).addEvaluator(new EndgameEvaluator());
-        ((CombinedEvaluator)evaluator).addEvaluator(new KingSafetyEvaluator());
+        this.evaluator.addEvaluator(new MaterialEvaluator());
+        this.evaluator.addEvaluator(new PositionalEvaluator());
+        this.evaluator.addEvaluator(new PawnStructureEvaluator());
+        this.evaluator.addEvaluator(new EndgameEvaluator());
+        this.evaluator.addEvaluator(new KingSafetyEvaluator());
         this.moveGenerator = moveGenerator;
     }
+
     public SearchResult findBestMove(Board board, int depth) {
         nodesSearched = 0;
+        maxDepth = depth;
         searchPositionHistory = new HashMap<>();
         searchPositionHistory.put(board.getPositionHash(), 1);
         Move bestMove = null;
@@ -56,7 +57,6 @@ public class Minimax {
             searchPositionHistory.put(newPosHash, searchPositionHistory.get(newPosHash) - 1);
             board.undoSearchMove();
 
-            System.out.println("Move: " + move + ", Score: " + score);
 
             if ((isMaximizing && score > bestScore) || (!isMaximizing && score < bestScore)) {
                 bestScore = score;
@@ -70,9 +70,9 @@ public class Minimax {
             }
         }
 
-        System.out.println("Selected best move: " + bestMove + " with score: " + bestScore);
         return new SearchResult(bestMove, bestScore, nodesSearched);
     }
+
     private int alphaBeta(Board board, int depth, int alpha, int beta, boolean isMaximizing) {
         nodesSearched++;
 
@@ -80,8 +80,12 @@ public class Minimax {
             return CombinedEvaluator.STALEMATE_VALUE; // Return draw evaluation
         }
 
+        // Calculate current search depth for mate scoring
+        int currentDepth = maxDepth - depth;
+
         if (depth <= 0) {
-            return evaluator.evaluate(board) * (isMaximizing ? 1 : -1); // Flip for black
+            int eval = evaluator.evaluate(board, currentDepth);
+            return eval * (isMaximizing ? 1 : -1); // Flip for black
         }
 
         MoveList moves = new MoveList(256);
@@ -89,9 +93,11 @@ public class Minimax {
 
         if (moves.size() == 0) {
             if (board.isInCheck()) {
-                return isMaximizing ? -30000 + depth : 30000 - depth; // Checkmate
+                // Use depth-aware mate scoring
+                int mateScore = CombinedEvaluator.MATE_VALUE - currentDepth;
+                return isMaximizing ? -mateScore : mateScore;
             } else {
-                return 0; // Stalemate
+                return CombinedEvaluator.STALEMATE_VALUE; // Stalemate
             }
         }
 

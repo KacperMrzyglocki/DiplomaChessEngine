@@ -3,21 +3,17 @@ package core.engine;
 import core.board.Board;
 import core.board.MoveGenerator;
 import core.eval.CombinedEvaluator;
-import core.eval.Evaluator;
 public class ChessEngine {
     private Minimax minimax;
     private SearchParameters params;
     private int searchDepth;
     private MoveGenerator moveGenerator;
-    private Evaluator evaluator;
+    private CombinedEvaluator evaluator;
 
     public ChessEngine() {
         this.params = new SearchParameters();
         this.searchDepth = params.getMaxDepth();
 
-        // Disable features you don't want to use
-        this.params.setUseQuiescenceSearch(false);
-        this.params.setUseTranspositionTable(false);
     }
     public void init() {
         this.moveGenerator = new MoveGenerator();

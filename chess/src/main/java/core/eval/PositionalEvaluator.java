@@ -86,13 +86,6 @@ public class PositionalEvaluator implements Evaluator {
         // Evaluate piece placement using piece-square tables
         score += evaluatePiecePositions(board);
 
-        // Additional positional factors could be added here:
-        // - Pawn structure (doubled, isolated, passed pawns)
-        // - King safety
-        // - Piece mobility
-        // - Control of center
-        // - etc.
-
         return board.isWhiteToMove() ? score : -score;
     }
 

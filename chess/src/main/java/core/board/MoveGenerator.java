@@ -598,13 +598,14 @@ public class MoveGenerator {
             int rank = square / 8;
             int file = square % 8;
 
-// Check if white pawn on southwest diagonal (rank-1, file-1) attacks this square
+            // White pawns attack diagonally forward (up the board)
+            // Check if white pawn on southwest diagonal (rank-1, file-1) attacks this square
             if (rank > 0 && file > 0) {
                 int pawnSquare = (rank - 1) * 8 + (file - 1);
                 if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
             }
 
-// Check if white pawn on southeast diagonal (rank-1, file+1) attacks this square
+            // Check if white pawn on southeast diagonal (rank-1, file+1) attacks this square
             if (rank > 0 && file < 7) {
                 int pawnSquare = (rank - 1) * 8 + (file + 1);
                 if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
@@ -637,14 +638,15 @@ public class MoveGenerator {
             int rank = square / 8;
             int file = square % 8;
 
-// Check if white pawn on southwest diagonal (rank-1, file-1) attacks this square
-            if (rank > 0 && file > 0) {
+            // Black pawns attack diagonally forward (down the board)
+            // Check if black pawn on northwest diagonal (rank+1, file-1) attacks this square
+            if (rank < 7 && file > 0) {
                 int pawnSquare = (rank + 1) * 8 + (file - 1);
                 if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
             }
 
-// Check if white pawn on southeast diagonal (rank-1, file+1) attacks this square
-            if (rank > 0 && file < 7) {
+            // Check if black pawn on northeast diagonal (rank+1, file+1) attacks this square
+            if (rank < 7 && file < 7) {
                 int pawnSquare = (rank + 1) * 8 + (file + 1);
                 if (Bitboard.isBitSet(pawns, pawnSquare)) return true;
             }

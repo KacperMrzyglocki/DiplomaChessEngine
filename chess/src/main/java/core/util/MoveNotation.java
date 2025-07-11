@@ -90,6 +90,30 @@ public class MoveNotation {
 
         return algebraic.toString();
     }
+    public static String ToUci(Move move) {
+        if (move == null) {
+            return "";
+        }
+
+        int fromSquare = move.getFrom();
+        int toSquare = move.getTo();
+
+        // Convert square indices to algebraic coordinates
+        char fromFile = (char)('a' + (fromSquare % 8));
+        char fromRank = (char)('1' + (fromSquare / 8));
+        char toFile = (char)('a' + (toSquare % 8));
+        char toRank = (char)('1' + (toSquare / 8));
+
+        String uciMove = "" + fromFile + fromRank + toFile + toRank;
+
+        // Add promotion piece if applicable
+        if (move.isPromotion()) {
+            char promotionPiece = Character.toLowerCase(getPieceChar(move.getPromotionPieceType()));
+            uciMove += promotionPiece;
+        }
+
+        return uciMove;
+    }
     private static char getPieceChar(int pieceType) {
         switch (pieceType) {
             case Piece.KING: return 'K';
